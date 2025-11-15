@@ -361,7 +361,7 @@ include Elasticsearch::Model::Callbacks
 
 **Implementation**:
 ```ruby
-# Sidekiq-Cron job runs every 5 minutes
+# Sidekiq-Cron job runs every 20 minutes
 Application.find_each do |app|
   app.update(chats_count: app.chats.count)
 end
