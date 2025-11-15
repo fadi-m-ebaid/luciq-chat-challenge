@@ -1,0 +1,11 @@
+update_chats_count:
+  cron: "*/20 * * * *"  # Every 20 minutes
+  class: "UpdateChatsCountJob"
+  queue: "default"
+  description: "Update chats_count for all applications"
+
+update_messages_count:
+  cron: "*/20 * * * *"  # Every 20 minutes
+  class: "UpdateMessagesCountJob"
+  queue: "default"
+  description: "Update messages_count for all chats"

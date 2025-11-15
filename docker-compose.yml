@@ -1,0 +1,77 @@
+# docker-compose.yml
+
+# We are using version 3.8 of the Docker Compose file format.
+# version: '3.8'
+
+services:
+  # 1. The Rails API service
+  api:
+    build: . 
+    container_name: chat_api
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'" 
+    volumes:
+      - .:/app 
+    ports:
+      - "3000:3000" # Map port 3000 on your computer to port 3000 in the container.
+    depends_on:
+      - db
+      - cache
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - REDIS_URL=redis://cache:6379/0
+      - ELASTICSEARCH_URL=http://search:9200
+
+  # 2. The Database service
+  db:
+    image: mysql:8.0 
+    container_name: chat_db
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=chat_challenge_development
+    ports:
+      - "3306:3306"
+
+  # 3. The Cache (and message broker ) service
+  cache:
+    image: redis:7.0-alpine
+    container_name: chat_redis
+    ports:
+      - "6379:6379"
+
+  # 4. The Background Worker service
+  worker:
+    build: . 
+    container_name: chat_worker
+    command: bundle exec sidekiq 
+    volumes:
+      - .:/app 
+    depends_on:
+      - db
+      - cache
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - REDIS_URL=redis://cache:6379/0
+      - ELASTICSEARCH_URL=http://search:9200
+
+  # 5. The Search Engine service
+  search:
+    image: elasticsearch:7.17.6 
+    container_name: chat_search
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data 
+
+# Named volumes used above.
+volumes:
+  mysql_data:
+  elasticsearch_data:

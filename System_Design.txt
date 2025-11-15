@@ -1,0 +1,92 @@
+#System Architecture
+                ┌─────────────────┐
+                │   Client App    │
+                │  (Mobile/Web)   │
+                └────────┬────────┘
+                         │ HTTP Requests
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│                     Rails API Server                    │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  Controllers (Validation, Business Logic)       │    │
+│  └──────────────────┬──────────────────────────────┘    │
+│                     │                                   │
+│                     ▼                                   │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  Redis Client (INCR for numbering)              │    │
+│  └──────────────────┬──────────────────────────────┘    │
+│                     │                                   │
+│                     ▼                                   │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  Sidekiq Client (Enqueue jobs)                  │    │
+│  └─────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+         │
+         │ Job Enqueue
+         ▼
+┌─────────────────────────────────────────────────────────┐
+│                      Redis Queue                        │
+│              (Message Broker / Job Queue)               │
+└────────┬────────────────────────────────────────────────┘
+         │
+         │ Job Dequeue
+         ▼
+┌─────────────────────────────────────────────────────────┐
+│                   Sidekiq Workers                       │
+│  ┌───────────────────────────────────────────────── ┐   │
+│  │  CreateChatWorker                                │   │
+│  │  CreateMessageWorker                             │   │
+│  │  CounterUpdateWorker (Scheduled)                 │   │
+│  └──────────┬───────────────────────┬───────────────┘   │
+└─────────────┼───────────────────────┼────────────────── ┘
+              │                       │
+              │ Write                 │ Index
+              ▼                       ▼
+    ┌──────────────────┐    ┌──────────────────┐
+    │   MySQL Database │    │  Elasticsearch   │
+    │  (Primary Store) │    │ (Search Engine)  │
+    └──────────────────┘    └──────────────────┘
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+
+#DB Design
+┌─────────────────────────────────┐
+│       applications              │
+├─────────────────────────────────┤
+│ id (PK, auto-increment)         │
+│ name (string, required)         │
+│ token (string, unique, indexed) │
+│ chats_count (integer, default 0)│
+│ created_at (datetime)           │
+│ updated_at (datetime)           │
+└─────────────────────────────────┘
+           │
+           │ has many
+           ▼
+┌─────────────────────────────────┐
+│          chats                  │
+├─────────────────────────────────┤
+│ id (PK, auto-increment)         │
+│ application_id (FK, indexed)    │
+│ number (integer, required)      │
+│ messages_count (int, default 0) │
+│ created_at (datetime)           │
+│ updated_at (datetime)           │
+│ UNIQUE(application_id, number)  │
+└─────────────────────────────────┘
+           │
+           │ has many
+           ▼
+┌─────────────────────────────────┐
+│         messages                │
+├─────────────────────────────────┤
+│ id (PK, auto-increment)         │
+│ chat_id (FK, indexed)           │
+│ number (integer, required)      │
+│ body (text, required)           │
+│ created_at (datetime)           │
+│ updated_at (datetime)           │
+│ UNIQUE(chat_id, number)         │
+└─────────────────────────────────┘
