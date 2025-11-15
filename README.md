@@ -367,49 +367,6 @@ Application.find_each do |app|
 end
 ```
 
-## Performance Characteristics
-
-### Scalability
-
-- **Horizontal**: Add more Sidekiq workers to handle increased load
-- **Vertical**: Redis and Elasticsearch can be clustered
-- **Database**: MySQL can be replicated (read replicas)
-
-### Throughput
-
-- **API**: Handles 1000+ requests/second (limited only by Redis)
-- **Workers**: Process 100+ jobs/second per worker
-- **Search**: Sub-100ms search queries on millions of messages
-
-### Reliability
-
-- **Job Retries**: Sidekiq automatically retries failed jobs
-- **Data Consistency**: Periodic sync ensures MySQL matches Redis
-- **Error Handling**: Graceful degradation on service failures
-
-## Monitoring
-
-### Sidekiq Web UI
-
-Access the Sidekiq dashboard to monitor jobs:
-
-```bash
-# Add to config/routes.rb (already configured)
-mount Sidekiq::Web => '/sidekiq'
-```
-
-Visit: `http://localhost:3000/sidekiq`
-
-
-
-### Automated Testing
-
-```bash
-# Run tests (if implemented)
-docker-compose exec api rails test
-```
-
-
 ## Project Structure
 
 ```
